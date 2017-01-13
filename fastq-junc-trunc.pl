@@ -26,6 +26,7 @@ sub init {
     my $j_DEF = 'GATCGATC';
     my $n_DEF = 4;
     my $fq_in;
+    my $seq_fh;
     getopts( 'f:j:n:e' );
     unless( -f $opt_f ) {
 	print( "fastq-junc-trunc.pl -f <fastq filename>\n" );
@@ -45,13 +46,15 @@ sub init {
     }
     ### Gzipped input?
     if ( $opt_f =~ /\.gz$/ ) {
-	$fq_in = Bio::SeqIO->new( '-file' => "zcat $opt_f |",
+	open( $seq_fh, '-|', "zcat $opt_f" );
+	$fq_in = Bio::SeqIO->new( '-fh' => $seq_fh,
 				  '-format' => 'fastq' );
     }
     ### Bzipped input
     else {
 	if ( $opt_f =~ /\.bz2$/ ) {
-	    $fq_in = Bio::SeqIO->new( '-file' => "bzcat $opt_f |",
+	    open( $seq_fh, '-|', "bzcat $opt_f" );
+	    $fq_in = Bio::SeqIO->new( '-fh' => $seq_fh,
 				      '-format' => 'fastq' );
 	}
 	else {
