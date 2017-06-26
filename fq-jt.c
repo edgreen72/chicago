@@ -68,7 +68,7 @@ int main( int argc, char* argv[] ) {
   if ( argc == 1 ) {
     help();
   }
-  while( (ich=getopt( argc, argv, "f:t:h:" )) != -1 ) {
+  while( (ich=getopt( argc, argv, "f:t:l:h" )) != -1 ) {
     switch(ich) {
     case 'f' :
       strcpy( fq_fn, optarg );
