@@ -38,6 +38,9 @@ while( chomp( $l = <SAME> ) ) {
 close( SAME );
 
 ### Write the output
+printf( "### Fraction of short innies: %.2f\n", ($in[0] / ($t_ss + $t_in + $t_out)) );
+printf( "### Short innies: %d\n", $in[0] );
+printf( "### Total: %d\n", ($t_ss + $t_in + $t_out) );
 print( "### Same-strand distance historgram for $opt_s.\n" );
 print( "### Bin size $opt_b\n" );
 print( "### Total same-strand hits: $t_ss\n" );
