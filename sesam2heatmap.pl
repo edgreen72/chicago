@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 use Getopt::Std;
-use vars qw( $opt_f $opt_r $opt_m $opt_b );
+use vars qw( $opt_f $opt_r $opt_m $opt_b $opt_m $opt_M );
 use strict;
 
 my ( $good_line, $f_line, $r_line, $bin, $i, $j, $chr );
@@ -19,6 +19,7 @@ open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
 
 ### Wind them through until past the header section
 ### populated %chr2len from header @SQ SN lines
+### Don't include if it's < $opt_M
 chomp( $f_line = <FSAM> );
 while ( $f_line =~ /^@/ ) {
     if ( $f_line =~ /^\@SQ/ ) {
@@ -94,6 +95,13 @@ sub process_lines {
 	return 1; # We're done, but keep on
     }
 
+    ### Are both reads mapped to a sequence that passed
+    ### length filter?
+    unless( $chr2len{ $f_el[2] } &&
+	    $chr2len{ $r_el[2] } ) {
+	return 1;
+    }
+    
     ### All's good.
     ($f_scaf, $f_start, $f_end, $f_mq, $f_strand) = 
 	&sam_line2table_data( @f_el );
@@ -128,7 +136,9 @@ sub parse_SN_header {
     my ( $chr, $len );
 
     ($chr, $len) = ( $sn_line =~ /SN:(\S+)\s+LN:(\d+)/);
-    $chr2len{ $chr } = $len;
+    if ( $len >= $opt_M ) {
+	$chr2len{ $chr } = $len;
+    }
 }
 
 sub bit_flag2strand {
@@ -145,12 +155,14 @@ sub bit_flag2strand {
 sub init {
     my $m_DEF = 20;
     my $b_DEF = 2000000;
-    getopts( 'f:r:m:b:' );
+    my $M_DEF = 100000;
+    getopts( 'f:r:m:b:M:' );
     unless( -f $opt_f &&
 	    -f $opt_r ) {
 	print( "sesam2table.pl -f <forward sam file> -r <reverse sam file>\n" );
 	print( "               -m <map quality cutoff; default = $m_DEF>\n" );
 	print( "               -b <bin size; default = $b_DEF>\n" );
+	print( "               -M <minimum length of chr/scaf/contig>\n" );
 	print( "Makes heatmap\n" );
 	exit( 0 );
     }
@@ -159,5 +171,8 @@ sub init {
     }
     unless( defined( $opt_b ) ) {
 	$opt_b = $b_DEF;
+    }
+    unless( defined( $opt_M ) ) {
+	$opt_M = $M_DEF;
     }
 }
