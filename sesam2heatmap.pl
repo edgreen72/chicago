@@ -13,9 +13,28 @@ my $HEATMAX;
 
 &init();
 
-### Open forward and reverse sam files
-open( FSAM, $opt_f ) or die( "$!: $opt_f\n" );
-open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
+### Open FILEHANDLES for forward and reverse sam files
+if ( $opt_f =~ /.sam$/ ) {
+    open( FSAM, $opt_f ) or die( "$!: $opt_f\n" );
+}
+elsif ( $opt_f =~ /.bam$/ ) {
+    open( FSAM, "samtools view -h $opt_f |" );
+}
+else {
+    print STDERR ("Don't know what kind of file $opt_f is\n" );
+    exit( 1 );
+}
+
+if ( $opt_r =~ /.sam$/ ) {
+    open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
+}
+elsif ( $opt_r =~ /.bam$/ ) {
+    open( RSAM, "samtools view -h $opt_r |" );
+}
+else {
+    print STDERR ("Don't know what kind of file $opt_r is\n" );
+    exit( 1 );
+}
 
 ### Wind them through until past the header section
 ### populated %chr2len from header @SQ SN lines
@@ -159,7 +178,8 @@ sub init {
     getopts( 'f:r:m:b:M:' );
     unless( -f $opt_f &&
 	    -f $opt_r ) {
-	print( "sesam2table.pl -f <forward sam file> -r <reverse sam file>\n" );
+	print( "sesam2table.pl -f <forward sam/bam file>\n" );
+	print( "               -r <reverse sam/bam file>\n" );
 	print( "               -m <map quality cutoff; default = $m_DEF>\n" );
 	print( "               -b <bin size; default = $b_DEF>\n" );
 	print( "               -M <minimum length of chr/scaf/contig>\n" );
