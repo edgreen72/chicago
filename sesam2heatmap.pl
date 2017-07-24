@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 use Getopt::Std;
-use vars qw( $opt_f $opt_r $opt_m $opt_b $opt_m $opt_M );
+use vars qw( $opt_f $opt_r $opt_m $opt_b $opt_m $opt_M $opt_B );
 use strict;
 
 my ( $good_line, $f_line, $r_line, $bin, $i, $j, $chr );
@@ -14,26 +14,31 @@ my $HEATMAX;
 &init();
 
 ### Open FILEHANDLES for forward and reverse sam files
-if ( $opt_f =~ /.sam$/ ) {
-    open( FSAM, $opt_f ) or die( "$!: $opt_f\n" );
-}
-elsif ( $opt_f =~ /.bam$/ ) {
-    open( FSAM, "samtools view -h $opt_f |" );
+if ( -f $opt_B ) {
+    open( FSAM, "samtools view -h -f 64 $opt_B |" );
+    open( RSAM, "samtools view -h -f 128 $opt_B |" );
 }
 else {
-    print STDERR ("Don't know what kind of file $opt_f is\n" );
-    exit( 1 );
-}
-
-if ( $opt_r =~ /.sam$/ ) {
-    open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
-}
-elsif ( $opt_r =~ /.bam$/ ) {
-    open( RSAM, "samtools view -h $opt_r |" );
-}
-else {
-    print STDERR ("Don't know what kind of file $opt_r is\n" );
-    exit( 1 );
+    if ( $opt_f =~ /.sam$/ ) {
+	open( FSAM, $opt_f ) or die( "$!: $opt_f\n" );
+    }
+    elsif ( $opt_f =~ /.bam$/ ) {
+	open( FSAM, "samtools view -h $opt_f |" );
+    }
+    else {
+	print STDERR ("Don't know what kind of file $opt_f is\n" );
+	exit( 1 );
+    }
+    if ( $opt_r =~ /.sam$/ ) {
+	open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
+    }
+    elsif ( $opt_r =~ /.bam$/ ) {
+	open( RSAM, "samtools view -h $opt_r |" );
+    }
+    else {
+	print STDERR ("Don't know what kind of file $opt_r is\n" );
+	exit( 1 );
+    }
 }
 
 ### Wind them through until past the header section
@@ -175,11 +180,11 @@ sub init {
     my $m_DEF = 20;
     my $b_DEF = 2000000;
     my $M_DEF = 100000;
-    getopts( 'f:r:m:b:M:' );
-    unless( -f $opt_f &&
-	    -f $opt_r ) {
+    getopts( 'f:r:m:b:M:B:' );
+    unless( -f $opt_B ||( -f $opt_f && -f $opt_r ) ) {
 	print( "sesam2table.pl -f <forward sam/bam file>\n" );
 	print( "               -r <reverse sam/bam file>\n" );
+	print( "               -B <read name sorted bam file with both forward and reverse>\n" );
 	print( "               -m <map quality cutoff; default = $m_DEF>\n" );
 	print( "               -b <bin size; default = $b_DEF>\n" );
 	print( "               -M <minimum length of chr/scaf/contig>\n" );
