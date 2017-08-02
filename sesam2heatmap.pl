@@ -187,8 +187,8 @@ sub init {
 	print( "               -B <read name sorted bam file with both forward and reverse>\n" );
 	print( "               -m <map quality cutoff; default = $m_DEF>\n" );
 	print( "               -b <bin size; default = $b_DEF>\n" );
-	print( "               -M <minimum length of chr/scaf/contig>\n" );
-	print( "Makes heatmap\n" );
+	print( "               -M <minimum length of chr/scaf/contig; default = $M_DEF>\n" );
+	print( "Makes heatmap data file for gnuplot visualization.\n" );
 	exit( 0 );
     }
     unless( defined( $opt_m ) ) {
