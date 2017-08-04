@@ -10,6 +10,10 @@
 #define MAX_SEQ_LEN 1023
 #define DEFAULT_CHUNK_SIZE 1024
 #define OFFSET DEFAULT 0
+
+char DJC[] = "GATCGATC"; // default junction sequence
+int DO = 4; // default offset
+
 /* Type to hold the forward and reverse read
    of a sequence pair with quality scores */
 typedef struct sqp {
@@ -39,7 +43,9 @@ int read_fastq( FILE* fastq, SQP curr_seq );
 int gz_read_fastq( gzFile fastq, SQP curr_seq );
 FILE * fileOpen(const char *name, char access_mode[]);
 void help( void ) {
-  printf( "fq-jt -f <fastq file> -t <truncation sequence> -l <offset length\n" );
+  printf( "fq-jt -f <fastq file>\n" );
+  printf( "      -t <truncation sequence; default = %s>\n", DJC );
+  printf( "      -l <offset length; default = %d>\n", DO );
   printf( "Takes an input fastq file and removes any sequence after the\n" );
   printf( "truncation sequence, if it's present. If an offset length is\n" );
   printf( "specified, this much sequence is kept, past the start of the\n" );
@@ -68,6 +74,10 @@ int main( int argc, char* argv[] ) {
   if ( argc == 1 ) {
     help();
   }
+
+  /* Set defaults */
+  strcpy( junc_seq, DJC );
+  offset = DO;
   while( (ich=getopt( argc, argv, "f:t:l:h" )) != -1 ) {
     switch(ich) {
     case 'f' :
