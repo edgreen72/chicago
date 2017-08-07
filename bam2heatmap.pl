@@ -13,8 +13,10 @@ our( $outfile_prefix, # file path prefix for all output files
 
 my ( $good_line, $f_line, $r_line, $bin, $i, $j, $chr );
 my ( @sorted_chrs );
-my ( %chr2len );
-my ( %chr2bin );
+my ( %chr2len, # hash of scaffold name (string) to length (bp, int)
+     %chr2bin, # hash of scaffold name to bin location (int)
+     %chr2maxbin, # scaf name to last bin
+     %chr2orientation); # hash of scaf name to orientation ("+"/"-")
 my %heatmap;
 my $HEATMAX;
 
@@ -26,7 +28,18 @@ if ( defined $scaffold_list_file ) {
         or die "$scaffold_list_file is not readable.";
     while ( <SCAFFOLDS> ) {
         chomp;
-        push @scaffolds_list, $_;
+        # if the scaffold name is preceded by an orientation, store this
+        # orientation in addition to the scaffold name
+        my ($scaffold_name, $orientation);
+        if ( /^([\+-])(.+)$/ ) {
+            $orientation = $1;
+            $scaffold_name = $2;
+        } else { # otherwise, the orientation is '+' by default
+            $orientation = "+";
+            $scaffold_name = $_;
+        }
+        push @scaffolds_list, $scaffold_name;
+        $chr2orientation{ $scaffold_name } = $orientation;
     }
 }
 
@@ -62,6 +75,7 @@ $bin = 0;
 foreach $chr ( @sorted_chrs ) {
     $chr2bin{ $chr } = $bin;
     $bin += int( $chr2len{ $chr } / $bin_size ) + 1;
+    $chr2maxbin{ $chr } = $bin;
 }
 $HEATMAX = $bin; # set the maximum bin; useful for output matrix
 
@@ -119,51 +133,78 @@ system( "gnuplot", $gnuplot_filename );
 sub process_lines {
     my $f_line = shift;
     my $r_line = shift;
-    my $innie;
     my ($f_scaf, $f_start, $f_end, $f_mq, $f_strand, $f_mid);
     my ($r_scaf, $r_start, $r_end, $r_mq, $r_strand, $r_mid);
     my ( $f_bin, $r_bin );
-    my ( @f_el, @r_el );
-    @f_el = split( "\t", $f_line );
-    @r_el = split( "\t", $r_line );
+
+    # make lists of sam fields in the forward and reverse reads
+    my @forward_read_fields = split( "\t", $f_line );
+    my @reverse_read_fields = split( "\t", $r_line );
 
     ### Are these the same read? Check their IDs
     ### If not, return false
-    unless ( $f_el[0] eq $f_el[0] ) {
+    unless ( $forward_read_fields[0] eq $reverse_read_fields[0] ) {
         return 0; # We're done & stop
     }
 
     ### Do both reads pass the map-quality filter?
-    unless ( ($f_el[4] >= $min_map_quality) &&
-             ($r_el[4] >= $min_map_quality) ) {
+    unless ( ($forward_read_fields[4] >= $min_map_quality) &&
+             ($reverse_read_fields[4] >= $min_map_quality) ) {
         return 1; # We're done, but keep on
     }
 
     ### Are both reads mapped to a sequence that passed
     ### length filter?
-    unless( $chr2len{ $f_el[2] } &&
-            $chr2len{ $r_el[2] } ) {
+    unless( $chr2len{ $forward_read_fields[2] } &&
+            $chr2len{ $reverse_read_fields[2] } ) {
         return 1;
     }
 
-    ### All's good.
-    ($f_scaf, $f_start, $f_end, $f_mq, $f_strand) =
-        &sam_line2table_data( @f_el );
-    ($r_scaf, $r_start, $r_end, $r_mq, $r_strand) =
-        &sam_line2table_data( @r_el );
+    # This read pair is fine, so we can add it to the proper bin
 
+    # First, parse the sam lines into variables
+    ($f_scaf, $f_start, $f_end, $f_mq, $f_strand) =
+        &sam_line2table_data( @forward_read_fields );
+    ($r_scaf, $r_start, $r_end, $r_mq, $r_strand) =
+        &sam_line2table_data( @reverse_read_fields );
+
+    # find the midpoints of the alignments (mean of start and end position)
     $f_mid = ($f_start + $f_end) / 2;
     $r_mid = ($r_start + $r_end) / 2;
 
-    $f_bin = $chr2bin{ $f_scaf } + int( $f_mid / $bin_size );
-    $r_bin = $chr2bin{ $r_scaf } + int( $r_mid / $bin_size );
+    # determine which bins these alignments fall into
+    $f_bin = &get_bin( $f_scaf, $f_mid );
+    $r_bin = &get_bin( $r_scaf, $r_mid );
 
+    # increment the heatmap matrix for this pair of bins, symmetrically
     $heatmap{$f_bin}->{$r_bin}++;
     $heatmap{$f_bin}->{$r_bin}++;
 
     return 1;
 }
 
+# get the bin number for a given location on a scaffold
+# Arguments: scaffold -- name of scaffold, for calculating offset
+# location -- base pair location of alignment midpoint on scaffold (int)
+# Returns: the index of the proper bin
+sub get_bin {
+    my ( $scaffold, $location ) = @_;
+    if ( $chr2orientation{ $scaffold } eq '+' ) {
+        return $chr2bin{ $scaffold } + int( $location / $bin_size );
+    } else {
+        return $chr2maxbin{ $scaffold } - int( $location / $bin_size );
+    }
+}
+
+# parse a list of sam fields into variables
+# Arguments: an array of fields in a single line of a sam file, e.g., from
+#            split ( "\t", $sam_file_line ).
+# Returns: an array containing:
+# - name of scaffold to which this read aligns
+# - starting location of alignment on this scaffold, in bp
+# - ending location of alignment, in bp
+# - MAPQ of this alignment
+# - strand of this alignment ('+' or '-')
 sub sam_line2table_data {
     my @sam_elements = @_;
     my ( $scaf, $start, $end, $strand, $mq );
@@ -194,15 +235,10 @@ sub parse_SN_header {
     }
 }
 
+# given a samflag (int), return '+' if it indicates an alignment on the forward
+# strand or '-' on the reverse strand
 sub bit_flag2strand {
-    my $bit_flag = shift;
-    my @bits = reverse(split( '', sprintf("%11b", ($bit_flag+2048) ) ));
-    if ( $bits[4] ) {
-        return '-';
-    }
-    else {
-        return '+';
-    }
+    return ( ( $_ & 16  ) ? '-' : '+' );
 }
 
 # parses command line arguments
@@ -221,7 +257,7 @@ sub init {
     Makes heatmap data file for gnuplot visualization.
     }) =~ s/^ {4}//gm;
 
-    GetOptions('outfile-prefix|p' => \$outfile_prefix,
+    GetOptions('outfile-prefix|p=s' => \$outfile_prefix,
                'min-map-quality|m=i' => \$min_map_quality,
                'bin-size|b=i' => \$bin_size,
                'min-scaffold-length|M=i' => \$min_scaffold_length,
