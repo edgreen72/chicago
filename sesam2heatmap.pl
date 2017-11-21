@@ -138,9 +138,14 @@ sub process_lines {
     $f_bin = $chr2bin{ $f_scaf } + int( $f_mid / $opt_b );
     $r_bin = $chr2bin{ $r_scaf } + int( $r_mid / $opt_b );
 
-    $heatmap{$f_bin}->{$r_bin}++;
-    $heatmap{$f_bin}->{$r_bin}++;
-
+    if ( $f_bin == $r_bin ) { # same bin, just put it in once
+	$heatmap{$f_bin}->{$r_bin}++;
+    }
+    else {
+	$heatmap{$f_bin}->{$r_bin}++;
+	$heatmap{$r_bin}->{$f_bin}++;
+    }
+    
     return 1;
 }
 
