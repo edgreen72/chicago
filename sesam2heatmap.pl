@@ -10,6 +10,10 @@ my ( %chr2len );
 my ( %chr2bin );
 my %heatmap;
 my $HEATMAX;
+my $MQ_FAIL      = 0;
+my $SEQ_LEN_FAIL = 0;
+my $SAME_BIN     = 0;
+my $DIFF_BIN     = 0;
 
 &init();
 
@@ -59,6 +63,7 @@ while ( $r_line =~ /^@/ ) {
 
 ### Sort chromosomes by length
 @sorted_chrs = sort { $chr2len{$b} <=> $chr2len{$a} } (keys %chr2len);
+printf STDERR ( "%d sequences greater than length cutoff\n", $#sorted_chrs );
 
 ### Populate %chr2bin with the first bin of each chromosome
 $bin = 0;
@@ -79,6 +84,11 @@ while( $good_line ) {
 	$good_line = 0;
     }
 }
+
+printf STDERR ( "%d failed map quality\n", $MQ_FAIL );
+printf STDERR ( "%d failed - mapped to length filtered sequences\n", $SEQ_LEN_FAIL );
+printf STDERR ( "%d mapped in same bin\n", $SAME_BIN );
+printf STDERR ( "%d mapped in different bins\n", $DIFF_BIN );
 
 for( $i = 0; $i <= $HEATMAX; $i++ ) {
     for( $j = 0; $j <= $HEATMAX; $j++ ) {
@@ -116,6 +126,7 @@ sub process_lines {
     ### Do both reads pass the map-quality filter?
     unless ( ($f_el[4] >= $opt_m) &&
 	     ($r_el[4] >= $opt_m) ) {
+	$MQ_FAIL++;
 	return 1; # We're done, but keep on
     }
 
@@ -123,6 +134,7 @@ sub process_lines {
     ### length filter?
     unless( $chr2len{ $f_el[2] } &&
 	    $chr2len{ $r_el[2] } ) {
+	$SEQ_LEN_FAIL++;
 	return 1;
     }
     
@@ -140,10 +152,12 @@ sub process_lines {
 
     if ( $f_bin == $r_bin ) { # same bin, just put it in once
 	$heatmap{$f_bin}->{$r_bin}++;
+	$SAME_BIN++;
     }
     else {
 	$heatmap{$f_bin}->{$r_bin}++;
 	$heatmap{$r_bin}->{$f_bin}++;
+	$DIFF_BIN++;
     }
     
     return 1;

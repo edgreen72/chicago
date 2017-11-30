@@ -4,6 +4,7 @@
 #include <zlib.h>
 #define MAX_ID_LEN 255
 #define MAX_SEQ_LEN 1023
+#define HASH_SIZE 8589934592
 
 static char *data[] = { "alpha", "bravo", "charlie", "delta",
 			"echo", "foxtrot", "golf", "hotel", "india", "juliet",
@@ -41,13 +42,16 @@ int main(int argc, char* argv[]) {
     help();
   }
 
-  while( (ich=getopt( argc, argv, "f:k:" )) != -1 ) {
+  while( (ich=getopt( argc, argv, "f:k:q:" )) != -1 ) {
     switch(ich) {
     case 'f' :
       strcpy( fq_fn, optarg );
       break;
     case 'k' :
-      k = atoi( aptarg );
+      k = atoi( optarg );
+      break;
+    case 'q' :
+      qual_cut = atoi( optarg );
       break;
     case 'h' :
       help();
@@ -57,6 +61,9 @@ int main(int argc, char* argv[]) {
   /* Initialize the SQP curr_seq */
   curr_seq = (SQP)malloc(sizeof( Sqp ));
 
+  /* Initialize the hash */
+  int hcreate( HASH_SIZE );
+  
   IS_GZ = is_gz( fq_fn );
   /* Open the fastq file */
   if ( IS_GZ ) {
@@ -72,7 +79,7 @@ int main(int argc, char* argv[]) {
     }
   }
   while( read_fastq_somehow( IS_GZ, fq_p, fq_gz_p, curr_seq ) ) {
-    // got fastq sequence in curr_seq - do it up
+    add_fastq_kmers( curr_seq );
   }
 
   close_fastq_somehow( IS_GZ, fq_p, fq_gz_p );
@@ -123,6 +130,18 @@ int is_gz( const char* fq_fn ) {
     return 1;
   }
   return 0;
+}
+
+/* add_fastq_kmers
+   Args: SQP curr_seq
+         int k
+   Returns: void
+   Does: adds all the kmers in the input SQP that pass
+         filtering to the current hash
+*/
+void add_fastq_kmers( SQP curr_seq, int k ) {
+  size_t len;
+
 }
 
 /* init_SQPDB
