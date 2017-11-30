@@ -14,6 +14,7 @@ my $MQ_FAIL      = 0;
 my $SEQ_LEN_FAIL = 0;
 my $SAME_BIN     = 0;
 my $DIFF_BIN     = 0;
+my $DEBUG        = 1;
 
 &init();
 
@@ -159,6 +160,13 @@ sub process_lines {
 	$heatmap{$r_bin}->{$f_bin}++;
 	$DIFF_BIN++;
     }
+
+    if ( $DEBUG &&
+	 ($SAME_BIN + $DIFF_BIN)%10000 == 0 ) {
+	printf STDERR ( "Same bin: %d    Diff bin: %d\n",
+			$SAME_BIN, $DIFF_BIN );
+    }
+	 
     
     return 1;
 }
