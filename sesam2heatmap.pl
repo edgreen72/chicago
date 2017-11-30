@@ -19,9 +19,11 @@ my $DEBUG        = 1;
 &init();
 
 ### Open FILEHANDLES for forward and reverse sam files
+### -f 64 -F 2048 == forward reads; no supplementary alignments
+### -f 128 -F 2048 == reverse reads; no supplementary alignments
 if ( -f $opt_B ) {
-    open( FSAM, "samtools view -h -f 64 $opt_B |" );
-    open( RSAM, "samtools view -h -f 128 $opt_B |" );
+    open( FSAM, "samtools view -h -f 64 -F 2048 $opt_B |" );
+    open( RSAM, "samtools view -h -f 128 -F 2048 $opt_B |" );
 }
 else {
     if ( $opt_f =~ /.sam$/ ) {
