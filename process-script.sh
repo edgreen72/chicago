@@ -1,11 +1,17 @@
 #!/usr/local/bin/tcsh
 
-setenv DD /projects/redser2/raw/                      # Where the raw reads are
-setenv GENOME /projects/redser2/genomes/              # The bwa indexed genome to align against
+
+### Do a git clone of
+### https://github.com/edgreen72/chicago
+### into local filesystem and do make
+setenv CHICAGO /path/of/chicago
+setenv DD /projects/redser2/raw/               # Where the raw reads are
+setenv GENOME /projects/redser2/genomes/       # The bwa indexed genome to align against
 setenv FJT ${CHICAGO}/fq-jt
 setenv IOS ${CHICAGO}/innies-outies-same-strand-lenhist.pl
 setenv SST ${HOME}/sesam2table.pl
 
+### Junction sequence for truncating reads
 setenv JUNCTION GATCGATC
 
 ### Make output directories
