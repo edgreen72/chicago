@@ -4,7 +4,7 @@ use Getopt::Std;
 use vars qw( $opt_f $opt_r $opt_m $opt_b $opt_m $opt_M $opt_B );
 use strict;
 
-my ( $good_line, $f_line, $r_line, $bin, $i, $j, $chr );
+my ( $good_line, $f_line, $r_line, $bin, $i, $j, $chr, $last_bin );
 my ( @sorted_chrs );
 my ( %chr2len );
 my ( %chr2bin );
@@ -15,6 +15,7 @@ my $SEQ_LEN_FAIL = 0;
 my $SAME_BIN     = 0;
 my $DIFF_BIN     = 0;
 my $DEBUG        = 1;
+my $MIN_PIXEL_SEP = 3;
 
 &init();
 
@@ -93,6 +94,7 @@ printf STDERR ( "%d failed - mapped to length filtered sequences\n", $SEQ_LEN_FA
 printf STDERR ( "%d mapped in same bin\n", $SAME_BIN );
 printf STDERR ( "%d mapped in different bins\n", $DIFF_BIN );
 
+##### Write the matrix values in gnuplot digestible format #####
 for( $i = 0; $i <= $HEATMAX; $i++ ) {
     for( $j = 0; $j <= $HEATMAX; $j++ ) {
 	if ( defined( $heatmap{$i}->{$j} ) ) {
@@ -105,9 +107,17 @@ for( $i = 0; $i <= $HEATMAX; $i++ ) {
     print( "\n" );
 }
 
+### Output helpful line to be copied into set xtics & set ytics
+### Don't write tic marks that are closer than $MIN_PIXEL_SEP
+printf( "\#  set xtics rotate( ");
 foreach $chr ( @sorted_chrs ) {
-    printf( "# %s %d\n", $chr, $chr2bin{ $chr } );
+    if ($chr2bin{$chr} - $last_bin >= $MIN_PIXEL_SEP) {
+	printf( "\"%s\" %d, ", $chr, $chr2bin{ $chr } );
+	$last_bin = $chr2bin{ $chr };
+    }
 }
+printf( ");\n" );
+
 
 sub process_lines {
     my $f_line = shift;
@@ -164,7 +174,7 @@ sub process_lines {
     }
 
     if ( $DEBUG &&
-	 ($SAME_BIN + $DIFF_BIN)%10000 == 0 ) {
+	 ($SAME_BIN + $DIFF_BIN)%100000 == 0 ) {
 	printf STDERR ( "Same bin: %d    Diff bin: %d\n",
 			$SAME_BIN, $DIFF_BIN );
     }
