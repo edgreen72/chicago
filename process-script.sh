@@ -1,27 +1,30 @@
 #!/usr/local/bin/tcsh
 
+### Synatx works on edser (not edser2)
 
 ### Do a git clone of
 ### https://github.com/edgreen72/chicago
 ### into local filesystem and do make
-setenv CHICAGO /path/of/chicago
-setenv DD /projects/redser2/raw/               # Where the raw reads are
-setenv GENOME /projects/redser2/genomes/       # The bwa indexed genome to align against
+setenv CHICAGO /soe/ed/src/chicago
+
+### The folder where the raw, input fastq reads are
+setenv DD /projects/redser2/raw/
+setenv GENOME /projects/redser2/genomes/hg19/hg19.fa # The bwa indexed genome to align against
 setenv FJT ${CHICAGO}/fq-jt
 setenv IOS ${CHICAGO}/innies-outies-same-strand-lenhist.pl
-setenv SST ${HOME}/sesam2table.pl
+setenv SST ${CHICAGO}/sesam2table.pl
 
 ### Junction sequence for truncating reads
 setenv JUNCTION GATCGATC
 
 ### Make output directories
-dat aln seq
+mkdir dat aln seq
 
 ### REPLACE FILE_NAME.R1, FILE_NAME.R2, and LIB-NAME
 ### with appropriate values
 
-${FJT} -f ${DD}/FILE_NAME.R1.fastq.gz -f ${JUNCTION} -l 4 > seq/LIB-NAME.R1.t.fq
-${FJT} -f ${DD}/FILE_NAME.R2.fastq.gz -f ${JUNCTION} -l 4 > seq/LIB-NAME.R2.t.fq
+${FJT} -f ${DD}/FILE_NAME.R1.fastq.gz -t ${JUNCTION} -l 4 > seq/LIB-NAME.R1.t.fq
+${FJT} -f ${DD}/FILE_NAME.R2.fastq.gz -t ${JUNCTION} -l 4 > seq/LIB-NAME.R2.t.fq
 gzip seq/LIB-NAME.*.t.fq
 
 foreach LIB ( "LIB-NAME" )
@@ -41,6 +44,9 @@ foreach LIB ( "LIB-NAME" )
    ${STT} -f aln/${LIB}.R1.sam -r aln/${LIB}.R2.sam \
 	  -s dat/${LIB}.same.tab -d dat/${LIB}.diff.tab
    ${IOS} -s dat/${LIB}.same.tab > dat/${LIB}.ios.txt
+
+   rm aln/${LIB}.R1.sai
+   rm aln/${LIB}.R1.sai   
    end
 
    
