@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 use Getopt::Std;
-use vars qw( $opt_f $opt_r $opt_m $opt_b $opt_m $opt_M $opt_B );
+use vars qw( $opt_f $opt_r $opt_m $opt_b $opt_m $opt_M $opt_B $opt_I );
 use strict;
 
 my ( $good_line, $f_line, $r_line, $bin, $i, $j, $chr, $last_bin );
@@ -67,7 +67,7 @@ while ( $r_line =~ /^@/ ) {
 
 ### Sort chromosomes by length
 @sorted_chrs = sort { $chr2len{$b} <=> $chr2len{$a} } (keys %chr2len);
-printf STDERR ( "%d sequences greater than length cutoff\n", $#sorted_chrs );
+printf STDERR ( "%d sequences greater than length cutoff\n", ($#sorted_chrs + 1));
 
 ### Populate %chr2bin with the first bin of each chromosome
 $bin = 0;
@@ -200,7 +200,14 @@ sub parse_SN_header {
 
     ($chr, $len) = ( $sn_line =~ /SN:(\S+)\s+LN:(\d+)/);
     if ( $len >= $opt_M ) {
-	$chr2len{ $chr } = $len;
+	if ( defined( $opt_I ) ) {
+	    if ( $opt_I eq $chr ) {
+		$chr2len{ $chr } = $len;
+	    }
+	}
+	else {
+	    $chr2len{ $chr } = $len;
+	}
     }
 }
 
@@ -219,7 +226,7 @@ sub init {
     my $m_DEF = 20;
     my $b_DEF = 2000000;
     my $M_DEF = 100000;
-    getopts( 'f:r:m:b:M:B:' );
+    getopts( 'f:r:m:b:M:B:I:' );
     unless( -f $opt_B ||( -f $opt_f && -f $opt_r ) ) {
 	print( "sesam2table.pl -f <forward sam/bam file>\n" );
 	print( "               -r <reverse sam/bam file>\n" );
@@ -227,6 +234,7 @@ sub init {
 	print( "               -m <map quality cutoff; default = $m_DEF>\n" );
 	print( "               -b <bin size; default = $b_DEF>\n" );
 	print( "               -M <minimum length of chr/scaf/contig; default = $M_DEF>\n" );
+	print( "               -I <identifier of single sequence to restrict to>\n" );
 	print( "Makes heatmap data file for gnuplot visualization.\n" );
 	exit( 0 );
     }

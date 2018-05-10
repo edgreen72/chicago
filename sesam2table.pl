@@ -1,16 +1,26 @@
 #!/usr/local/bin/perl
 
 use Getopt::Std;
-use vars qw( $opt_f $opt_r $opt_s $opt_d $opt_m );
+use vars qw( $opt_f $opt_r $opt_s $opt_d $opt_m $opt_B );
 use strict;
 
 my ( $good_line, $f_line, $r_line );
 
 &init();
 
-### Open forward and reverse sam files
-open( FSAM, $opt_f ) or die( "$!: $opt_f\n" );
-open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
+
+### Open FILEHANDLES for forward and reverse sam files
+### -f 64 -F 2048 == forward reads; no supplementary alignments
+### -f 128 -F 2048 == reverse reads; no supplementary alignments
+if ( -f $opt_B ) {
+    open( FSAM, "samtools view -h -f 64 -F 2048 $opt_B |" );
+    open( RSAM, "samtools view -h -f 128 -F 2048 $opt_B |" );
+}
+else {
+    ### Open forward and reverse sam files
+    open( FSAM, $opt_f ) or die( "$!: $opt_f\n" );
+    open( RSAM, $opt_r ) or die( "$!: $opt_r\n" );
+}
 
 ### Wind them through until past the header section
 chomp( $f_line = <FSAM> );
@@ -139,10 +149,10 @@ sub bit_flag2strand {
 
 sub init {
     my $m_DEF = 20;
-    getopts( 'f:r:s:d:m:' );
-    unless( -f $opt_f &&
-	    -f $opt_r ) {
+    getopts( 'f:r:s:d:m:B:' );
+    unless( -f $opt_B || (-f $opt_f && -f $opt_r) ) {
 	print( "sesam2table.pl -f <forward sam file> -r <reverse sam file>\n" );
+	print( "               -B <readname sorted BAM file>\n" );
 	print( "               -s <output table for read pairs mapped to same scaffold>\n" );
 	print( "               -d <output table for read pairs mapped to different scaffold>\n" );
 	print( "               -m <map quality cutoff; default = $m_DEF>\n" );
